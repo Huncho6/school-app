@@ -1,11 +1,8 @@
-const mongoose = require("mongoose");
+const dotenv = require("dotenv"); //importing dotenv after installation
+const mongoose = require("mongoose"); //importing mongoose
+dotenv.config(); //importing dotenv because that where our connection string from mongoose is
 
-mongoose.connect(
-    'mongodb+srv://ibrahim489:Huncho66@ibrahim.3vlz281.mongodb.net/school-app?retryWrites=true&w=majority&appName=ibrahim'
-);
-
+mongoose.connect(process.env.MONGODB_CONNECTION_STRING); //importing and connecting to mongoose from .env file
 const db = mongoose.connection;
 
 module.exports = db;
-
-

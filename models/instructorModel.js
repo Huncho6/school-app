@@ -1,7 +1,8 @@
+//instructor schema more info in read.md
 const mongoose = require("mongoose");
 
 const { Schema } = mongoose;
- 
+
 const instructorSchema = new Schema({
   first_name: {
     type: String,
@@ -14,41 +15,48 @@ const instructorSchema = new Schema({
   other_name: {
     type: String,
     required: false,
-    },
-    gender:{
-        type: mongoose.Schema.Types.ObjectId,
-        required: true,
-    },
-    address: {
+  },
+  gender: {
+    type: mongoose.Schema.Types.ObjectId,
+    required: false,
+  },
+  address: {
     type: String,
     required: false,
-    },
-  email:{
-    type: String,
-      required: true,
-    lowercase: true,
-    },
-  phone_number:{
+  },
+  email: {
     type: String,
     required: true,
-    },
-    courses:{
+    lowercase: true,
+  },
+  phone_number: {
+    type: String,
+    required: true,
+  },
+  courses: {
     type: [mongoose.Schema.Types.ObjectId],
-    required: true
-    },
-    gitHub:{
-        type: String,
-        required: true,
-    },
-    password: {
-    type: String, 
+    required: true,
+  },
+  role: {
+    //to define if user is instructor or student
+    type: String,
+    default: "instructor",
+  },
+  gitHub: {
+    type: String,
+    required: true,
+  },
+  password: {
+    type: String,
     required: true,
     validate: (v) => v.length > 6,
-    }, 
-    createdAt: {
+  },
+  createdAt: {
     type: Date,
-    dafault : Date.now,
-    },
+    default: Date.now,
+  },
+  resetToken: String, // these fields are added so that the token generated from the forget password can save directly to database before using it to change password
+  expireToken: Date,
 });
 
 const instructor = mongoose.model("instructor", instructorSchema);
