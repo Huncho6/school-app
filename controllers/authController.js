@@ -1,5 +1,6 @@
 const Instructor = require("../models/instructorModel"); //importing instructor schema
 const Student = require("../models/studentModel"); //importing student schema
+const nodemailer = require("nodemailer"); //importing nodemailer to get email when account is created
 const crypto = require("crypto"); //crypto is a random token generator that help to generate otp for for the forget password function
 const bcrypt = require("bcrypt"); //importing bcrypt after installation
 const jwt = require("jsonwebtoken"); //importing jsonwebtoken
@@ -155,7 +156,7 @@ exports.login = async (req, res) => {
   }
 };
 
-exports.forgotPassword = async ({ body: { email } }, res) => {
+exports.studentForgotPassword = async ({ body: { email } }, res) => {
   //checking if email exist in the database
   const student = await Student.findOne({ email });
   if (!student)
@@ -179,14 +180,46 @@ exports.forgotPassword = async ({ body: { email } }, res) => {
   //using the try&catch method to manage the process when saving the token and expired token duration to the client property in the database
   try {
     const saveToken = await student.save();
-    return res.status(200).json({
-      message: "add url that handles reset password",
-      data: {
-        resetToken: saveToken.resetToken, // Send the  token to the user
-        expireToken: saveToken.expireToken,
-        userId: saveToken._id, // Include the user ID in the response
+
+    // Set up nodemailer transporter
+    const transporter = nodemailer.createTransport({
+      service: "Gmail",
+      host: "smtp.gmail.com",
+      port: 465,
+      secure: true,
+      auth: {
+        user: "abodunriniyanda1@gmail.com",
+        pass: process.env.GOOGLE_APP_PASSWORD,
       },
-      status: "success",
+    });
+
+    // Set up mail options
+    const mailOptions = {
+      from: "abodunriniyanda1@gmail.com",
+      to: student.email,
+      subject: "Hello from Nodemailer",
+      text: `this is your reset token ${convertTokenToHexString} .`,
+    };
+
+    // Send the email
+    transporter.sendMail(mailOptions, function (error, info) {
+      if (error) {
+        console.log(error);
+        return res.status(500).json({
+          status: false,
+          message: `error sending email -> ${error}`,
+        });
+      } else {
+        console.log("Email sent: " + info.response);
+        return res.status(200).json({
+          message: "Password reset token has been sent to your email.",
+          data: {
+            resetToken: saveToken.resetToken, // Send the token to the user
+            expireToken: saveToken.expireToken,
+          },
+          status: "success",
+        });
+      }
     });
   } catch (error) {
     return res.status(500).json({
@@ -196,12 +229,11 @@ exports.forgotPassword = async ({ body: { email } }, res) => {
   }
 };
 //this function can be executed after using email to generate token from the previous function
-exports.resetPassword = async (req, res) => {
-  const { resetToken, newPassword, userId } = req.body; //these parameters would be required to change the password
+exports.studentResetPassword = async (req, res) => {
+  const { resetToken, newPassword } = req.body; //these parameters would be required to change the password
 
   // Find the student with the provided user ID and check if the token has not expired
   const student = await Student.findOne({
-    _id: userId,
     expireToken: { $gt: Date.now() },
   });
 
@@ -244,7 +276,7 @@ exports.resetPassword = async (req, res) => {
   }
 };
 
-exports.changePassword = async (req, res) => {
+exports.studentChangePassword = async (req, res) => {
   try {
     const { studentId } = req.params;
     const { oldPassword, newPassword } = req.body;
@@ -282,7 +314,7 @@ exports.changePassword = async (req, res) => {
   }
 };
 
-exports.forgotPassword = async ({ body: { email } }, res) => {
+exports.instructorForgotPassword = async ({ body: { email } }, res) => {
   //checking if email exist in the database
   const instructor = await Instructor.findOne({ email });
   if (!instructor)
@@ -311,7 +343,6 @@ exports.forgotPassword = async ({ body: { email } }, res) => {
       data: {
         resetToken: saveToken.resetToken, // Send the  token to the user
         expireToken: saveToken.expireToken,
-        userId: saveToken._id, // Include the user ID in the response
       },
       status: "success",
     });
@@ -323,12 +354,11 @@ exports.forgotPassword = async ({ body: { email } }, res) => {
   }
 };
 //this function can be executed after using email to generate token from the previous function
-exports.resetPassword = async (req, res) => {
-  const { resetToken, newPassword, userId } = req.body;
+exports.instructorResetPassword = async (req, res) => {
+  const { resetToken, newPassword } = req.body;
 
   // Find the student with the provided user ID and check if the token has not expired
   const instructor = await Instructor.findOne({
-    _id: userId,
     expireToken: { $gt: Date.now() },
   });
 
@@ -372,7 +402,7 @@ exports.resetPassword = async (req, res) => {
 };
 //this function is for when the old password is known can be updated when logged in
 //this is an update password for instructor
-exports.changePassword = async (req, res) => {
+exports.instructorChangePassword = async (req, res) => {
   try {
     const { instructorId } = req.params;
     const { oldPassword, newPassword } = req.body; //oldpassword is needed because i didn't forget the old one

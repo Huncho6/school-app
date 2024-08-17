@@ -1,5 +1,6 @@
 //import exxpress into our app es5 way
 const express = require("express");
+const cors = require("cors");
 const db = require("./dbConn/conn");
 const authRoute = require("./routes/authRoute");
 const studentRoutes = require("./routes/studentRoutes");
@@ -19,7 +20,7 @@ db.once("open", () => console.log("connected to database"));
 
 //using this middleware to process request from consumers
 app.use(express.json());
-
+app.use(cors()); // installing cors to allow access in the frontend
 //creating a middleware
 const welcomeMessage = (req, res, next) => {
   console.log("ekaabo");
