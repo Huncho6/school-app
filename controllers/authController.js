@@ -7,62 +7,148 @@ const jwt = require("jsonwebtoken"); //importing jsonwebtoken
 const dotenv = require("dotenv"); //importing dotenv
 dotenv.config();
 //function to create account
+const tempUserStore = new Map(); // Temporary store for confirmation codes
+
 exports.createAccount = async (req, res) => {
   try {
     const { account } = req.params;
-    const { password } = req.body;
-    console.log(password);
+    const { email, password } = req.body;
 
-    const hashedPassword = await bcrypt.hash(password, 10); //can be replaced with gen.salt //a unique identifier for user that have the same password
-    console.log(password, "password");
-    console.log(hashedPassword, "hashedPassword");
-    req.body.password = hashedPassword; //assigning the normal password to the the hashed password
+    // Hash the user's password
+    const hashedPassword = await bcrypt.hash(password, 10);
+    req.body.password = hashedPassword;
 
+    let userModel, userType;
+    
+    // Determine the type of user account
     if (account === "student") {
-      //for student
-      try {
-        const isUserExist = await Student.findOne({ email: req.body.email }); //check for
-        if (isUserExist) {
-          //if the email already exists
-          return res.status(400).send({
-            status: "error",
-            message: "user already exists",
-          });
-        }
-        const student = new Student(req.body); //if he doesn't exist create account
-        await student.save();
-        res.status(201).json({
-          status: "sucsess",
-          message: "student created successfully",
-        });
-      } catch (error) {
-        res.status(500).json({ message: error.message });
-      }
+      userModel = Student;
+      userType = "student";
     } else if (account === "instructor") {
-      //for instructor
-      try {
-        const isUserExist = await Instructor.findOne({ email: req.body.email });
-        if (isUserExist) {
-          //if user exist
-          return res.status(400).send({
-            status: "error",
-            message: "user already exists",
-          });
-        }
-        const instructor = new Instructor(req.body); //if he doesn't exist create account
-        await instructor.save();
-        res.status(201).send({
-          status: "sucsess",
-          message: "instructor created successfully",
-        });
-      } catch (error) {
-        res.status(400).json({ message: error.message });
-      }
+      userModel = Instructor;
+      userType = "instructor";
+    } else {
+      return res.status(400).json({ message: "Invalid account type" });
     }
+
+    // Check if user already exists
+    const isUserExist = await userModel.findOne({ email });
+    if (isUserExist) {
+      return res.status(400).json({
+        status: "error",
+        message: "User already exists",
+      });
+    }
+
+    // Create the new user and save to database
+    const newUser = new userModel(req.body);
+    await newUser.save();
+
+    // Generate a confirmation code
+    const confirmationCode = crypto.randomBytes(3).toString("hex");
+    tempUserStore.set(email, { ...req.body, confirmationCode });
+
+    // Send confirmation email
+    await sendConfirmationEmail(email, confirmationCode);
+
+    return res.status(201).json({
+      status: "success",
+      message: `${userType} created successfully. Please check your email for the confirmation code.`,
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
+
+// Helper function to send confirmation emails
+const sendConfirmationEmail = async (email, confirmationCode) => {
+  const transporter = nodemailer.createTransport({
+    service: "Gmail",
+    host: "smtp.gmail.com",
+    port: 465,
+    secure: true,
+    auth: {
+      user: "abodunriniyanda1@gmail.com",
+      pass: process.env.GOOGLE_APP_PASSWORD,
+    },
+  });
+
+  const mailOptions = {
+    from: process.env.EMAIL,
+    to: email,
+    subject: "Account Confirmation",
+    text: `Your confirmation code is: ${confirmationCode}`,
+  };
+
+  return transporter.sendMail(mailOptions);
+};
+exports.verifyAccount = async (req, res) => {
+  try {
+    const { account } = req.params; // "student" or "instructor"
+    const { email, confirmationCode } = req.body;
+
+    // Retrieve user data from temporary storage
+    const storedUser = tempUserStore.get(email);
+    if (!storedUser || storedUser.confirmationCode !== confirmationCode) {
+      return res
+        .status(400)
+        .json({ message: "Invalid confirmation code or email." });
+    }
+
+    // Determine the correct user model based on the account type
+    let userModel;
+    if (account === "student") {
+      userModel = Student;
+    } else if (account === "instructor") {
+      userModel = Instructor;
+    } else {
+      return res.status(400).json({ message: "Invalid account type." });
+    }
+
+    // Save the user to the database with the correct model
+    const newUser = new userModel({
+      ...storedUser,
+      confirmationCode: null,
+    });
+    await newUser.save();
+
+    // Remove user data from temporary storage after saving to the database
+    tempUserStore.delete(email);
+
+    // Send congratulatory email
+    const transporter = nodemailer.createTransport({
+      service: "Gmail",
+      host: "smtp.gmail.com",
+      port: 465,
+      secure: true,
+      auth: {
+        user: "abodunriniyanda1@gmail.com",
+        pass: process.env.GOOGLE_APP_PASSWORD,
+      },
+    });
+
+    const mailOptions = {
+      from: process.env.EMAIL,
+      to: email,
+      subject: "Account Verified",
+      text: "Congratulations! Your account has been successfully created and verified.",
+    };
+
+    transporter.sendMail(mailOptions, (error, info) => {
+      if (error) {
+        return res.status(500).json({ message: "Error sending email", error });
+      } else {
+        return res.status(200).json({
+          status: "success",
+          message: "Account verified successfully. A congratulatory email has been sent.",
+        });
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 //function to login
 exports.login = async (req, res) => {
   try {

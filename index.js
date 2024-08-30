@@ -43,11 +43,11 @@ app.listen(775, () => {
 
 //importing routes
 //unprotected route for incase i want to get one student,instructor,login and create account
+
 app.use("/api/v1", courseRoutes);
 app.use("/api/v1", studentRoutes);
 app.use("/api/v1", instructorRoutes);
 app.use("/api/v1", authRoute); //important for logging in and creating account
-//we have import auth route before student and instructor because of the way js read codes
 //protected routes for after login need authorization as the key and the token gotten from logging in as the value
 app.use("/api/v1", verifyToken, isStudent, studentRoutes);
 //did this and the i discovered i can't do a normal get all request after (verifyToken and isstudent&&isinstructor is added)

@@ -3,6 +3,7 @@ const { Router } = require("express");
 const {
   createAccount,
   login,
+  verifyAccount,
   studentForgotPassword,
   instructorForgotPassword,
   studentResetPassword,
@@ -14,6 +15,7 @@ const router = Router();
 //:account in this function allows us to specify if the user is instructor or student when testing with postman since they're in the same function
 router.post("/auth/create-account/:account", createAccount); // Create account function
 router.post("/auth/login/:account", login); // Login function
+router.post("/auth/verify-account/:account", verifyAccount);
 //this is an alternative to using the :account this is used when they're in different functions
 router.post("/auth/forgot-password/student", studentForgotPassword);
 router.post("/auth/forgot-password/instructor", instructorForgotPassword); //forget password function
