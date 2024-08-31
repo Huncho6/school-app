@@ -85,7 +85,7 @@ const sendConfirmationEmail = async (email, confirmationCode) => {
 exports.verifyAccount = async (req, res) => {
   try {
     const { account } = req.params; // "student" or "instructor"
-    const { email, confirmationCode } = req.body;
+    const { confirmationCode } = req.body;
 
     // Retrieve user data from temporary storage
     const storedUser = tempUserStore.get(email);
