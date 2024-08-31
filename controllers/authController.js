@@ -19,7 +19,7 @@ exports.createAccount = async (req, res) => {
     req.body.password = hashedPassword;
 
     let userModel, userType;
-    
+
     // Determine the type of user account
     if (account === "student") {
       userModel = Student;
@@ -89,7 +89,9 @@ exports.verifyAccount = async (req, res) => {
 
     // Ensure email and confirmationCode are provided
     if (!email || !confirmationCode) {
-      return res.status(400).json({ message: "Email and confirmation code are required." });
+      return res
+        .status(400)
+        .json({ message: "Email and confirmation code are required." });
     }
 
     // Retrieve user data from temporary storage
@@ -145,7 +147,8 @@ exports.verifyAccount = async (req, res) => {
       } else {
         return res.status(200).json({
           status: "success",
-          message: "Account verified successfully. A congratulatory email has been sent.",
+          message:
+            "Account verified successfully. A congratulatory email has been sent.",
         });
       }
     });
@@ -336,7 +339,7 @@ exports.studentResetPassword = async (req, res) => {
   }
 
   // Compare the provided token with the hashed token in the database
-  const isValidToken = bcrypt.compare(resetToken, student.resetToken);
+  const isValidToken = await bcrypt.compare(resetToken, student.resetToken);
   if (!isValidToken) {
     return res.status(400).json({
       status: "error",
