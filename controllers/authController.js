@@ -85,7 +85,12 @@ const sendConfirmationEmail = async (email, confirmationCode) => {
 exports.verifyAccount = async (req, res) => {
   try {
     const { account } = req.params; // "student" or "instructor"
-    const { confirmationCode } = req.body;
+    const { confirmationCode, email } = req.body; // Include email in the body
+
+    // Ensure email and confirmationCode are provided
+    if (!email || !confirmationCode) {
+      return res.status(400).json({ message: "Email and confirmation code are required." });
+    }
 
     // Retrieve user data from temporary storage
     const storedUser = tempUserStore.get(email);
